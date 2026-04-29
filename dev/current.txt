@@ -1,0 +1,26 @@
+ebalance Stata baseline -- frozen 1.5.3 reference
+
+---- e(maxdiff) ----
+      0.0003638677
+
+---- e(N_t) (treated) ----
+                 .
+
+---- e(N_c) (controls) ----
+                 .
+
+---- summary stats of generated weights _w_basic ----
+min:          0.0000913808
+max:          0.9179355547
+mean:         0.0115682841
+sd:           0.0462624973
+sum:        185.0000000000
+
+---- weighted means of covariates (controls) ----
+age weighted mean (control):       25.8164690066
+age mean (treated):                25.8162162162
+educ weighted mean (control):       10.3460605171
+educ mean (treated):                10.3459459459
+black weighted mean (control):        0.8431394257
+black mean (treated):                 0.8432432432
+
