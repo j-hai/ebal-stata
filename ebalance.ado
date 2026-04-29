@@ -1,6 +1,6 @@
-*! version 1.5.3 Jens Hainmueller, Yiqing Xu 01/25/14
+*! version 1.5.4 Jens Hainmueller, Yiqing Xu 04/29/2026
 program ebalance , eclass
-        version 11.2
+        version 13.0
 
 syntax varlist(min=1 numeric fv) [if] [in] [, TARgets(numlist >0 <=3 integer) ///
                                            MANUALtargets(numlist) ///
@@ -30,14 +30,14 @@ if _rc == 0 {
    }
    else {
      dis as err "variable `generate' already defined"
-     exit	 
+     exit 198
    }
 }
 
 /* check replace under keep() */
 if ("`keep'" == "" & "`replace'" != "") {
   dis as err "option replace invalid -- keep() is not specified"
-  exit
+  exit 198
 }
 
 
@@ -52,17 +52,17 @@ if ("`keep'" != "" & "`replace'" == "") {
 if ("`manualtargets'"!="") { // manual mode: single group where treat is omitted
   if ("`targets'"!="") {
     dis as err "targets() and manualtargets() are not compatible"
-	exit
+	exit 198
   }
   if "`wttreat'"!="" {
 	dis as err "wttreat and manualtargets() are not compatible"
-	exit
+	exit 198
   }
   * check number of observations
   qui: count if  `touse' == 1  
   if (`r(N)' <= 1) {
       dis as err "insufficient observations"
-      exit
+      exit 198
   }	
   * create factor variables as temporary variables (so they can be used with other commands)
   fvrevar `varlist'
@@ -83,25 +83,25 @@ else {  // auto mode: two groups with treat specified
   gettoken D varlist: varlist
   if ("`varlist'"=="") {
     disp as err "too few variables specified"
-	exit
+	exit 198
   }
   * check treatment variable
   _fv_check_depvar `D'
     qui: count if `D'!=1 & `D'!=0 & `touse' == 1
     if (`r(N)'>0) {
       dis as err "treatment indicator (`D') must be a logical variable, TRUE (1) or FALSE (0)"
-      exit
+      exit 198
     }
     qui: sum `D' if `touse' == 1  
     if (`r(Var)' == 0) {
       dis as err "treatment indicator (`D') must contain both treatment and control observations"
-      exit
+      exit 198
     }
-    qui: count if `D'==0 & `touse' == 1  
+    qui: count if `D'==0 & `touse' == 1
     if (`r(N)' <= 1) {
       dis as err "insufficient observations"
-      exit
-    }	
+      exit 198
+    }
 	* create factor variables as temp vars 
    fvrevar `varlist'
    local fvarlist `r(varlist)'   
@@ -131,7 +131,6 @@ if ("`basewt'"!="") {
    if ("`wttreat'"=="") {
          /* case without base weights for treated units */  
          /* drop controls with missing weight */
-		 di "test"
         qui: count if `basewt'==. & `D' == 0 & `touse' == 1
 		if (`r(N)'>0)  di as txt "note: `r(N)' control units with missing base weights are not assigned weights"
         qui: replace  `touse'=0 if `basewt'==. & `D' == 0 & `touse' == 1	
@@ -154,8 +153,8 @@ if ("`basewt'"!="") {
  }
  else {
     if "`wttreat'"!="" {
-	    dis as err "weigthing variable required"
-		exit
+	    dis as err "weighting variable required"
+		exit 198
     }
     else {
         qui: gen `baseweight' = 1 if `touse' == 1
@@ -179,13 +178,13 @@ if ("`manualtargets'"!="") { // single group mode
   /* check numlist in manualtargets*/
   if wordcount("`manualtargets'")>`xnum1' {
      dis as err "manualtargets() invalid -- numlist has too many elements"
-	 exit
+	 exit 198
   }
   if wordcount("`manualtargets'")<`xnum1' {
      dis as err "manualtargets() invalid -- numlist has too few elements"
-	 exit
+	 exit 198
   }
-  /* generate one artifical treated in new last row */
+  /* generate one artificial treated in new last row */
   mata st_addobs(1)
   qui: replace `D'    =1 in -1
   qui: replace `touse'=1 in -1
@@ -219,7 +218,7 @@ else {  //two-group mode
   }
   if wordcount("`targets'")>`xnum1' {
      dis as err "targets() invalid -- numlist has too many elements"
-	 exit
+	 exit 198
   }
   else {
      if wordcount("`targets'")<`xnum1' {
@@ -233,7 +232,7 @@ else {  //two-group mode
 	     }
 	     else {
 	       dis as err "targets() invalid -- numlist has too few elements"
-		   exit
+		   exit 198
 	     }	
       }
    }
@@ -274,13 +273,12 @@ else {  //two-group mode
 	    tempvar `xx'_2
 	    qui: gen     ``xx'_2' =  (`xx' - `treat_mean')^2*`ctrl_N'/(`ctrl_N'-1)    if `touse' == 1 & `D'==0
 	    qui: replace ``xx'_2' =  (`xx' - `treat_mean')^2*`treat_N'/(`treat_N'-1)  if `touse' == 1 & `D'==1
-	    * mata: idxvar2 = idxvar2, (st_varindex(tokens("``xx'_2'")))
 		mata: Xnames2 = Xnames2 \ ("``xx'_2'","`yy'")
 		local ++xnum2
     }
     if (``i''== 3) {
 	  /* populate matrix for 3rd order moments */
-      /* gen temp cubed terms (degrees of freedom adjusted to be consistent with STATA defination , see Manual "summarize" ) */
+      /* gen temp cubed terms (degrees of freedom adjusted to be consistent with Stata definition , see Manual "summarize" ) */
 	    tempvar `xx'_3
         qui: gen     ``xx'_3' =  (`xx' - `treat_mean')^3*(`ctrl_N'/(`ctrl_N'-1))^1.5    if `touse' == 1 & `D'==0
         qui: replace ``xx'_3' =  (`xx' - `treat_mean')^3*(`treat_N'/(`treat_N'-1))^1.5  if `touse' == 1 & `D'==1
@@ -315,7 +313,7 @@ while "`tempvarlist'"~="" {
    if (`tmax'<`cmin' | `cmax'<`tmin') {
       if ("`manualtargets'"~="") dis as err "target beyond the range of `xx'"
       else dis as err "no overlap in `xx'"
-	  exit
+	  exit 198
    }
 }
  
@@ -347,7 +345,7 @@ if (res_converge == 0) {  /* report the most demanding variable in case of non-c
   if (res_maxdist == 0) dis as txt "note: The algorithm fails to adjust the summation of weights (possibly due to too few control units)" 
   else if (res_maxdist <= `xnum1') di as txt "note: The algorithm fails to adjust the mean (1st order moment) of " as res word("`constrt1'",res_maxdist) 
   else if (res_maxdist <= `xnum1'+`xnum2') di as txt "note: The algorithm fails to adjust the variance (2nd order moment) of " as res word("`constrt2'",res_maxdist-`xnum1')
-  else di as txt "note: The algorithm fails to adjust the 3rd order moment of " as res word("`constrt2'",res_maxdist-`xnum1'-`xnum2')
+  else di as txt "note: The algorithm fails to adjust the 3rd order moment of " as res word("`constrt3'",res_maxdist-`xnum1'-`xnum2')
   
   if ("`keep'" != "") dis as txt "note: convergence not achieved; balance table not saved"
   
@@ -400,7 +398,7 @@ else {
 
 /* nomalization adjustment */
 if ("`manualtargets'"!="") {
-  qui: drop in -1                  /* drop artifical treated unit */
+  qui: drop in -1                  /* drop artificial treated unit */
   qui: sum `generate' if `touse'==1
   qui: replace `generate'= `generate'*`normconst'*`r(N)'/`r(sum)' if `touse'==1
 }

@@ -1,0 +1,32 @@
+ebalance Stata integration tests — current source
+
+==== t1 default ====
+convg:      1.0000000000
+maxdiff:    0.0003638677
+
+==== t2 targets 3 1 1 ====
+convg:      1.0000000000
+maxdiff:    0.0012236782
+
+==== t3 manualtargets ====
+convg:      1.0000000000
+maxdiff:    0.0004757801
+
+==== t4 keep ====
+convg:      1.0000000000
+maxdiff:    0.0003638677
+
+t4 balance table vars:
+  Xname
+  mean_Tr
+  mean_Co_Pre
+  mean_Co_Post
+  var_Tr
+  var_Co_Pre
+  var_Co_Post
+  skew_Tr
+  skew_Co_Pre
+  skew_Co_Post
+  sdiff_Pre
+  sdiff_Post
+
