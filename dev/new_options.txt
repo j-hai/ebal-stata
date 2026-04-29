@@ -1,0 +1,8 @@
+quietly log lines:    18
+loud    log lines:    67
+quietly is smaller:   YES
+
+gen(myw) without replace: rc= 198  (must be != 0)
+gen(myw) with replace:    rc=   0, e(convg)=   1  (rc must be 0)
+
+wrong-target arity:       rc= 198  (must be 198)

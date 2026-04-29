@@ -1,3 +1,38 @@
+# ebal Stata 1.5.5
+
+## New options
+
+* **`quietly`** suppresses all per-iteration progress output, the
+  "Data Setup" / "Optimizing..." banners, and the pre/post balance
+  tables. Convergence status (success or failure) is still printed.
+  Output volume drops by roughly 4x in production scripts. The
+  computed `e(preBal)` / `e(postBal)` matrices are still ereturned
+  so balance information is available programmatically.
+
+* **`replace`** now also applies to `gen()`. Previously a
+  user-supplied `gen(myvar)` name would error if `myvar` already
+  existed in the dataset; only the default `_webal` was silently
+  overwritten. With `replace`, the user-supplied name behaves like
+  the default (silent overwrite). The keep()-file semantics of
+  `replace` are unchanged. As a small side effect, `replace` is no
+  longer rejected when used without `keep()`.
+
+## Numerical hardening
+
+* Mata `eb()` and `linesearch()` now cap the linear predictor
+  `coX * coefs'` at 700 before applying `exp()`. Previously, with
+  ill-conditioned data a single Newton step could push coefficients
+  into a regime where `exp(...)` overflowed to `Inf`, propagating
+  `NaN` through the next multiplication and silently corrupting the
+  result. The cap is inactive (no-op) on well-conditioned problems
+  and only kicks in to keep the optimizer numerically afloat.
+
+## Verified
+
+Canonical Lalonde NSW-CPS example reproduces byte-for-byte against
+the 1.5.3 baseline. The new `quietly` and `replace` options are
+exercised in `dev/05_new_options_test.do`.
+
 # ebal Stata 1.5.4
 
 ## Bug fixes

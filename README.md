@@ -40,17 +40,30 @@ After `ebalance`, the standard ereturned values are available:
 * `e(preBal)` / `e(postBal)` — pre- and post-weighting balance matrices
 * `e(moments)`, `e(lambdas)` — target moments and Lagrange multipliers
 
-## What's new in 1.5.4
+## What's new in 1.5.5
 
-* Fixed a leftover `di "test"` debug statement that fired whenever
-  `basewt()` was used without `wttreat`.
-* Fixed wrong-variable-name in the 3rd-moment-failure diagnostic
-  message (was reporting from the 2nd-moment list).
-* All `exit` after error messages converted to `exit 198`, so user
-  scripts can correctly detect `ebalance` failures via `_rc`.
-* Several typos fixed; `version` declaration bumped 11.2 → 13.0.
-* No numerical changes — verified byte-for-byte against the 1.5.3
-  baseline on the canonical Lalonde example.
+* **`quietly`** option suppresses per-iteration progress, banners, and
+  the pre/post balance tables. ~4× quieter logs for production scripts;
+  `e(preBal)` / `e(postBal)` matrices still ereturned.
+* **`replace`** now also applies to `gen()`. Previously
+  `gen(custom_name)` errored if the variable already existed; only the
+  default `_webal` was silently overwritten. With `replace`, any name
+  is overwritten cleanly.
+* **Numerical hardening**: cap on `exp(coX * coefs')` linear predictor
+  at 700 prevents `Inf → NaN` propagation under ill-conditioned data.
+  No-op for well-conditioned fits.
+
+## What was new in 1.5.4
+
+* Fixed leftover `di "test"` debug print on `basewt()` path.
+* Fixed wrong-variable-name in the 3rd-moment-failure diagnostic.
+* All ~14 `exit` after error messages converted to `exit 198`, so user
+  scripts can detect failures via `_rc`.
+* Typos in error/comment strings.
+* `version 11.2` → `version 13.0`.
+
+No numerical changes in either release — verified byte-for-byte
+against the 1.5.3 baseline on the canonical Lalonde example.
 
 See [`NEWS.md`](NEWS.md) for the full change log.
 

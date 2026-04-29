@@ -1,4 +1,4 @@
-*! version 1.5.4 Jens Hainmueller, Yiqing Xu 04/29/2026
+*! version 1.5.5 Jens Hainmueller, Yiqing Xu 04/29/2026
 program ebalance , eclass
         version 13.0
 
@@ -11,7 +11,8 @@ syntax varlist(min=1 numeric fv) [if] [in] [, TARgets(numlist >0 <=3 integer) //
 										   MAXIter(integer 20) ///
 										   TOLerance(real .015) ///
 										   Keep(string) ///
-										   REPlace]
+										   REPlace ///
+										   Quietly]
 
 qui: marksample touse // exclude obs with missng data
 tempvar baseweight treated controls
@@ -25,20 +26,21 @@ if "`generate'"=="" {
 }
 cap confirm variable `generate', exact
 if _rc == 0 {
-   if "`generate'"=="_webal" {
-	 cap drop _webal   
+   /* the default '_webal' is always silently overwritten (legacy behavior);
+      any other user-supplied name requires the replace option to overwrite */
+   if "`generate'"=="_webal" | "`replace'" != "" {
+     cap drop `generate'
    }
    else {
-     dis as err "variable `generate' already defined"
+     dis as err "variable `generate' already defined; use the replace option to overwrite"
      exit 198
    }
 }
 
-/* check replace under keep() */
-if ("`keep'" == "" & "`replace'" != "") {
-  dis as err "option replace invalid -- keep() is not specified"
-  exit 198
-}
+/* the replace option now applies to either keep() (file overwrite) or
+   gen() (variable overwrite), so it is valid as long as one of them is
+   specified. The default _webal variable is always silently replaced
+   (legacy behavior); user-supplied gen() names need replace to overwrite. */
 
 
 /* check file already exists */
@@ -319,17 +321,19 @@ while "`tempvarlist'"~="" {
  
 
 /********************* Produce initial output ************************* */
-di _newline(1)
-di as res "Data Setup"
-if ("`manualtargets'"=="") {
-  di as txt "Treatment variable:   " as res "`D'"
-  mata: printf("{txt}Covariate adjustment:")
-  mata: printf("%s ", constrt1)
-  if `xnum2'!=0 mata: printf("{txt}(1st order).{res}%s {txt}(2nd order).",constrt2)
-  if `xnum3'!=0 mata: printf("{res}%s {txt}(3rd order).\n",constrt3)
+if ("`quietly'"=="") {
+  di _newline(1)
+  di as res "Data Setup"
+  if ("`manualtargets'"=="") {
+    di as txt "Treatment variable:   " as res "`D'"
+    mata: printf("{txt}Covariate adjustment:")
+    mata: printf("%s ", constrt1)
+    if `xnum2'!=0 mata: printf("{txt}(1st order).{res}%s {txt}(2nd order).",constrt2)
+    if `xnum3'!=0 mata: printf("{res}%s {txt}(3rd order).\n",constrt3)
+  }
+  else mata: printf("{txt}Covariate adjustment:{res}%s{txt}\n", constrt1)
+  di _newline(1)
 }
-else mata: printf("{txt}Covariate adjustment:{res}%s{txt}\n", constrt1)
-di _newline(1)
 
 
 /* ********************** Main Algo ************************* */
@@ -338,8 +342,8 @@ qui: replace `treated'  = 1 if `D' == 1 & `touse' == 1
 qui: gen     `controls' = 0
 qui: replace `controls' = 1 if `D' == 0 & `touse' == 1
 
-di as res "Optimizing..."
-mata: eb("`treated'","`controls'",Xnames[,1]',"`baseweight'","`generate'",`maxiter',`tolerance')
+if ("`quietly'"=="") di as res "Optimizing..."
+mata: eb("`treated'","`controls'",Xnames[,1]',"`baseweight'","`generate'",`maxiter',`tolerance',"`quietly'")
 
 if (res_converge == 0) {  /* report the most demanding variable in case of non-convegence */
   if (res_maxdist == 0) dis as txt "note: The algorithm fails to adjust the summation of weights (possibly due to too few control units)" 
@@ -412,55 +416,64 @@ else {
 
 /* ******************  Organize output ********************* */
 
-/* show results */
+/* show results — always compute the Pre / Post matrices for ereturn,
+   but suppress the matlist display under `quietly' */
 if ("`manualtargets'"!="") {
-  di _newline(1)
+  if ("`quietly'"=="") di _newline(1)
   qui: sum `generate' if `D'==0 & `touse'==1
-  di as res "No. of units adjusted: " as txt "`r(N)' " as res "total of weights: " as txt round(`r(sum)')
+  if ("`quietly'"=="") di as res "No. of units adjusted: " as txt "`r(N)' " as res "total of weights: " as txt round(`r(sum)')
 
-  di _newline(1)
-  if "`basewt'"=="" di as res "Before: " as txt "without weighting"
-  else di as res "Before: " as txt "`basewt' as the weighting variable"
-  qui: tabstat `fvarlist' [aweight=`baseweight'] if `touse' == 1, c(s) s(mean variance skewness) longstub save 
+  if ("`quietly'"=="") {
+    di _newline(1)
+    if "`basewt'"=="" di as res "Before: " as txt "without weighting"
+    else di as res "Before: " as txt "`basewt' as the weighting variable"
+  }
+  qui: tabstat `fvarlist' [aweight=`baseweight'] if `touse' == 1, c(s) s(mean variance skewness) longstub save
   tempname Pre Post
   mat `Pre' =  r(StatTotal)'
-  mat rownames `Pre' = `lfvarlist' 
-  matlist `Pre', tw(12) format(%9.4g)
-  
-  di _newline(1)
-  di as res "After:  " as txt "`generate' as the weighting variable"
+  mat rownames `Pre' = `lfvarlist'
+  if ("`quietly'"=="") matlist `Pre', tw(12) format(%9.4g)
+
+  if ("`quietly'"=="") {
+    di _newline(1)
+    di as res "After:  " as txt "`generate' as the weighting variable"
+  }
   qui: tabstat `fvarlist' [aweight=`generate'] if `touse' == 1, c(s) s(mean variance skewness) longstub save
   mat `Post' =  r(StatTotal)'
-  mat rownames `Post' = `lfvarlist' 
-  matlist `Post', tw(12) format(%9.4g)
+  mat rownames `Post' = `lfvarlist'
+  if ("`quietly'"=="") matlist `Post', tw(12) format(%9.4g)
 }
 else {
-  di _newline(1)
+  if ("`quietly'"=="") di _newline(1)
   qui: sum `generate' if `D'==1 & `touse'==1
-  di as res "Treated units: " as txt "`r(N)'" _column(24) as res "total of weights: " as txt round(`r(sum)')
+  if ("`quietly'"=="") di as res "Treated units: " as txt "`r(N)'" _column(24) as res "total of weights: " as txt round(`r(sum)')
   qui: sum `generate' if `D'==0 & `touse'==1
-  di as res "Control units: " as txt "`r(N)'" _column(24) as res "total of weights: " as txt round(`r(sum)')
+  if ("`quietly'"=="") di as res "Control units: " as txt "`r(N)'" _column(24) as res "total of weights: " as txt round(`r(sum)')
 
-  di _newline(1)
-  if "`basewt'"=="" di as res "Before: " as txt "without weighting"
-  else di as res "Before: " as txt "`basewt' as the weighting variable"
-  qui: tabstat `fvarlist' [aweight=`baseweight'] if `touse' == 1, c(s) by(`D') s(mean variance skewness) nototal longstub save 
- 
+  if ("`quietly'"=="") {
+    di _newline(1)
+    if "`basewt'"=="" di as res "Before: " as txt "without weighting"
+    else di as res "Before: " as txt "`basewt' as the weighting variable"
+  }
+  qui: tabstat `fvarlist' [aweight=`baseweight'] if `touse' == 1, c(s) by(`D') s(mean variance skewness) nototal longstub save
+
   tempname Pre Post
   mat `Pre' = r(Stat2)', r(Stat1)'
   mat colnames `Pre' = mean variance skewness mean variance skewness
   mat coleq `Pre' = Treat Treat Treat Control Control Control
-  mat rownames `Pre' = `lfvarlist' 
-  matlist `Pre', tw(12) lines(eq) showcoleq(c)  format(%9.4g) 
-  
-  di _newline(1)
-  di as res "After:  " as txt "`generate' as the weighting variable"
-  qui: tabstat `fvarlist' [aweight=`generate'] if `touse' == 1, c(s) by(`D') s(mean variance skewness) nototal longstub save 
+  mat rownames `Pre' = `lfvarlist'
+  if ("`quietly'"=="") matlist `Pre', tw(12) lines(eq) showcoleq(c)  format(%9.4g)
+
+  if ("`quietly'"=="") {
+    di _newline(1)
+    di as res "After:  " as txt "`generate' as the weighting variable"
+  }
+  qui: tabstat `fvarlist' [aweight=`generate'] if `touse' == 1, c(s) by(`D') s(mean variance skewness) nototal longstub save
   mat `Post' = r(Stat2)', r(Stat1)'
   mat colnames `Post' = mean variance skewness mean variance skewness
   mat coleq `Post' = Treat Treat Treat Control Control Control
-  mat rownames `Post' = `lfvarlist' 
-  matlist `Post', tw(12) lines(eq) showcoleq(c) format(%9.4g) 
+  mat rownames `Post' = `lfvarlist'
+  if ("`quietly'"=="") matlist `Post', tw(12) lines(eq) showcoleq(c) format(%9.4g)
 }
 
 
@@ -587,21 +600,27 @@ void linesearch(todo, ss, Q, cX, M, coefs, nstep, maxdiff, g, H)
 	   real matrix wr
 	   real matrix weightsebal
 	   real matrix xxs
-	   	
-       wr = exp(cX*(coefs-(ss:*nstep)')')
+	   real matrix linpred
+
+	   /* cap the linear predictor at 700 to prevent exp() overflow on
+	      ill-conditioned data — Inf would propagate to NaN below */
+       linpred = cX * (coefs - (ss :* nstep)')'
+       linpred = linpred :* (linpred :<= 700) :+ 700 :* (linpred :> 700)
+       wr = exp(linpred)
        weightsebal = wr:*Q
        xxs = weightsebal'*cX
        maxdiff = max(abs(xxs-M'))
 }
 
 /* entropy balancing */
-void eb(string Tr, string Co, string matrix X, string Baseweight, string Newvar, real Numiter, real Tol)
+void eb(string Tr, string Co, string matrix X, string Baseweight, string Newvar, real Numiter, real Tol, string Quietly)
  {
  real matrix coX
  real matrix trX
  real matrix baseweight
  real matrix treatweight
- real vector moment                    
+ real matrix linpred
+ real vector moment
  real matrix coefs                      // coefficients (lambdas)
  real scalar rr
  real scalar cc
@@ -640,7 +659,14 @@ maxdiff = Tol + 1
 
 while (maxdiff > Tol & iter<=Numiter) {
 
- wr = exp(coX*coefs')
+ /* cap the linear predictor at 700 to prevent exp() overflow on
+    ill-conditioned data; with poorly-scaled covariates a single Newton
+    step can push coefs into a regime where exp(coX*coefs') == Inf,
+    which then becomes NaN under the next multiplication. The cap is
+    inactive on well-conditioned problems. */
+ linpred = coX * coefs'
+ linpred = linpred :* (linpred :<= 700) :+ 700 :* (linpred :> 700)
+ wr = exp(linpred)
  weightsebal = wr:*baseweight
  xxs  = weightsebal'*coX    
  gradient = xxs - moment'   /* gradient */
@@ -687,8 +713,10 @@ while (maxdiff > Tol & iter<=Numiter) {
  maxdiff = max(abs(gradient))/moment[1]     // rescale according to weight total of the treated
  maxdist = maxw = 0
  maxindex(abs(gradient),1,maxdist,maxw)  //store the most demanding variable in maxdist
- printf("{txt}Iteration %f: Max Difference = {res}%g", iter, maxdiff)
- printf("{txt}\n")
+ if (Quietly == "") {
+   printf("{txt}Iteration %f: Max Difference = {res}%g", iter, maxdiff)
+   printf("{txt}\n")
+ }
  if (zerostep ==1) {
   /* printf("{txt} (line search fails)\n") */
    break
