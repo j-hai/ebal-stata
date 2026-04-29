@@ -1,0 +1,18 @@
+v 1
+d ebalance. Entropy reweighting to create balanced samples
+d Jens Hainmueller, Department of Political Science, Stanford University
+d Yiqing Xu, Department of Political Science, MIT
+d 
+d ebalance implements entropy balancing, a data preprocessing procedure that 
+d allows users to reweight a dataset such that the covariate distributions in the 
+d reweighted data satisfy a set of specified moment conditions. 
+d This can be useful to create balanced samples in observational studies with 
+d a binary treatment where the control group data can be reweighted to match 
+d the covariate moments in the treatment group. Entropy balancing can also 
+d be used to reweight a survey sample to known characteristics from a target population.
+d
+d
+d Support: jhain@stanford.edu
+f ebalance.ado
+f ebalance.sthlp
+f cps1re74.dta

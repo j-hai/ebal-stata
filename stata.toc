@@ -1,0 +1,7 @@
+v 1
+d ebalance. Entropy reweighting to create balanced samples
+d Jens Hainmueller, Department of Political Science, MIT
+d Yiqing Xu, Department of Political Science, MIT
+d
+d See the homepage for the paper that describes the method.
+p ebalance Entropy reweighting to create balanced samples

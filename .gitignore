@@ -1,0 +1,9 @@
+# Stata
+*.smcl
+log.txt
+*.log
+.DS_Store
+Icon?
+*.swp
+.vscode/
+.idea/
