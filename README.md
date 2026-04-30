@@ -19,6 +19,14 @@ ssc install ebalance, replace
 net install ebalance, from(https://raw.githubusercontent.com/j-hai/ebal-stata/main/e/) replace
 ```
 
+When net-installing directly from GitHub, Stata installs the command
+and help files, but not the bundled example dataset. To download
+`cps1re74.dta` into your current working directory, run:
+
+```stata
+net get ebalance, from(https://raw.githubusercontent.com/j-hai/ebal-stata/main/e/)
+```
+
 ## Quick start
 
 ```stata

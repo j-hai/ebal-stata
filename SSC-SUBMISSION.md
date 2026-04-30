@@ -80,3 +80,10 @@ The release on GitHub also has the zip attached at the URL above.
 ```stata
 net install ebalance, from(https://raw.githubusercontent.com/j-hai/ebal-stata/main/e/) replace
 ```
+
+To download the example dataset (`cps1re74.dta`) into the current
+working directory:
+
+```stata
+net get ebalance, from(https://raw.githubusercontent.com/j-hai/ebal-stata/main/e/)
+```
