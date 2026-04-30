@@ -16,7 +16,7 @@ The method is described in:
 ssc install ebalance, replace
 
 * Development version from GitHub:
-net install ebalance, from(https://raw.githubusercontent.com/j-hai/ebal-stata/main/) replace
+net install ebalance, from(https://raw.githubusercontent.com/j-hai/ebal-stata/main/e/) replace
 ```
 
 ## Quick start

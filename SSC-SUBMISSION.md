@@ -78,5 +78,5 @@ The release on GitHub also has the zip attached at the URL above.
 ## Test users can do before SSC is live
 
 ```stata
-net install ebalance, from(https://raw.githubusercontent.com/j-hai/ebal-stata/main/) replace
+net install ebalance, from(https://raw.githubusercontent.com/j-hai/ebal-stata/main/e/) replace
 ```
