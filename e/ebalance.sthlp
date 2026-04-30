@@ -307,5 +307,5 @@ Kullback, S. 1959, "Information Theory and Statistics", Wiley, NY.
       Jens Hainmueller, jhain@stanford.edu
       Stanford
 
-      Yiqing Xu, xyq@mit.edu
-      MIT
+      Yiqing Xu
+      Stanford
